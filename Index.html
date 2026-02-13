@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Fireworks Soft</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+        font-family: "Segoe UI", sans-serif;
+    }
+
+    .label {
+        position: absolute;
+        top: 18px;
+        left: 22px;
+        font-size: 15px;
+        letter-spacing: 0.6px;
+        opacity: 0.45;
+        font-weight: 500;
+        color: #ffb9d7;
+        text-shadow: 0 0 2px #ff7bb6;
+        user-select: none;
+        z-index: 5;
+    }
+
+    .message {
+        position: absolute;
+        bottom: 50px;
+        width: 100%;
+        text-align: center;
+        font-size: 17px;
+        color: #ffe5f2;
+        opacity: 0;
+        line-height: 1.6;
+        letter-spacing: 0.4px;
+        user-select: none;
+        animation: fadeIn 3.5s ease forwards;
+        animation-delay: 5s;
+        z-index: 5;
+    }
+
+    @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(20px); }
+        60% { opacity: 0.6; transform: translateY(8px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* TRÁI TIM */
+    #heartBox {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 260px;
+        height: 260px;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+    }
+
+    #heart {
+        position: absolute;
+        width: 260px;
+        height: 260px;
+        background: rgba(255,0,0,0.18);
+        clip-path: path("M130 230 L20 110 A60 60 0 0 1 130 40 A60 60 0 0 1 240 110 Z");
+        border: 2px solid rgba(255,60,60,0.55);
+        box-shadow: 0 0 15px rgba(255,60,60,0.4);
+    }
+
+    /* CHỮ TRONG TRÁI TIM — NHỎ LẠI ĐỂ BẢO ĐẢM KHÔNG TRÀN */
+    #heartText {
+        position: absolute;
+        width: 70%;
+        text-align: center;
+        color: #ffe6f0;
+        font-size: 13.5px;      /* ↓ nhỏ hơn cho gọn */
+        line-height: 1.35;
+        opacity: 0;
+        text-shadow: 0 0 5px #ff8faf;
+        z-index: 11;
+        user-select: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="label">Gửi người tao yêu..</div>
+
+<div class="message">
+    Chúc mừng năm mới nha 🎉<br>
+    Nói thiệt thì t thích m hơn 1 năm rồi ấy…<br>
+    Thích m vui lắm luôn á…<br>
+    Si mà thôi… m có ny rồi 🥲<br>
+    Hạnh phúc nhaaaaa 💗
+</div>
+
+<!-- TRÁI TIM XUẤT HIỆN SAU 7 GIÂY -->
+<div id="heartBox">
+    <div id="heart"></div>
+    <div id="heartText">
+        Cảm ơn m nhiều nhaaa cảm ơn vì đã chấp nhận làm bạn với taooo<br>
+        và an ủi, dỗ dành tao này kia :><br>
+        và những lần cỗ vũ t khi t sợ ma nữa chứ..<br>
+        (Nghĩ tới mà thấy ngại)
+    </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+/* ---------------- FIREWORKS ---------------- */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.onresize = resize;
+
+let fireworks = [];
+let particles = [];
+
+class Firework {
+    constructor(sx, sy, tx, ty) {
+        this.x = sx;
+        this.y = sy;
+        this.tx = tx;
+        this.ty = ty;
+        this.speed = 6;
+        this.angle = Math.atan2(ty - sy, tx - sx);
+        this.exploded = false;
+    }
+
+    update() {
+        if (!this.exploded) {
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+
+            if (Math.hypot(this.x - this.tx, this.y - this.ty) < 8) {
+                this.exploded = true;
+                explode(this.x, this.y);
+            }
+        }
+    }
+
+    draw() {
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.fillRect(this.x, this.y, 1.5, 1.5);
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.speed = Math.random() * 2.5 + 0.6;
+        this.angle = Math.random() * Math.PI * 2;
+        this.gravity = 0.03;
+        this.friction = 0.985;
+        this.life = 140;
+        this.decay = Math.random() * 0.8 + 0.3;
+        this.color = color;
+        this.size = Math.random() * 1.4 + 0.6;
+        this.brightness = 50 + Math.random() * 10;
+    }
+
+    update() {
+        this.speed *= this.friction;
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed + this.gravity;
+        this.life -= this.decay;
+    }
+
+    draw() {
+        ctx.globalAlpha = Math.max(this.life / 140, 0);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${this.color}, 80%, ${this.brightness}%)`;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+function explode(x, y) {
+    const color = Math.random() * 360;
+    for (let i = 0; i < 160; i++) {
+        particles.push(new Particle(x, y, color));
+    }
+}
+
+function loop() {
+    ctx.fillStyle = "rgba(0,0,0,0.15)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (Math.random() < 0.045) {
+        const sx = canvas.width / 2;
+        const sy = canvas.height;
+        const tx = Math.random() * canvas.width;
+        const ty = Math.random() * canvas.height * 0.35;
+        fireworks.push(new Firework(sx, sy, tx, ty));
+    }
+
+    fireworks.forEach((f, i) => {
+        f.update();
+        f.draw();
+        if (f.exploded) fireworks.splice(i, 1);
+    });
+
+    particles.forEach((p, i) => {
+        p.update();
+        p.draw();
+        if (p.life <= 0) particles.splice(i, 1);
+    });
+
+    requestAnimationFrame(loop);
+}
+
+loop();
+
+/* SAU 7 GIÂY – HIỆN TRÁI TIM, XOÁ CHỮ */
+setTimeout(() => {
+    document.querySelector(".label").style.display = "none";
+    document.querySelector(".message").style.display = "none";
+
+    const heartBox = document.getElementById("heartBox");
+    heartBox.style.display = "flex";
+
+    setTimeout(() => {
+        document.getElementById("heartText").style.opacity = 1;
+    }, 400);
+
+}, 7000);
+</script>
+
+</body>
+</html>
